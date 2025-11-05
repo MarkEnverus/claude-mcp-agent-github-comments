@@ -27,11 +27,28 @@ from .tools import (
 )
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+log_level = os.getenv("LOG_LEVEL", "INFO")
+log_file = os.getenv("MCP_LOG_FILE")
+
+log_config = {
+    "level": getattr(logging, log_level.upper()),
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+}
+
+if log_file:
+    log_config["filename"] = log_file
+    log_config["filemode"] = "a"
+
+logging.basicConfig(**log_config)
 logger = logging.getLogger("github-pr-mcp")
+
+# Log startup
+logger.info("=" * 80)
+logger.info("GitHub PR Comment MCP Server Starting")
+logger.info(f"Log Level: {log_level}")
+if log_file:
+    logger.info(f"Logging to: {log_file}")
+logger.info("=" * 80)
 
 
 def create_github_pr_mcp_server(
@@ -312,6 +329,9 @@ def create_github_pr_mcp_server(
     @server.call_tool()
     async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         """Call a tool by name with arguments"""
+        logger.info(f"Tool called: {name}")
+        logger.debug(f"Arguments: {arguments}")
+
         try:
             result = None
 
@@ -340,6 +360,9 @@ def create_github_pr_mcp_server(
             else:
                 import json
                 content = json.dumps(result, indent=2)
+
+            logger.info(f"Tool {name} completed successfully")
+            logger.debug(f"Result length: {len(content)} chars")
 
             return [TextContent(type="text", text=content)]
 

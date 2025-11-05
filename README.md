@@ -33,23 +33,46 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for full details.
 
 ## Quick Start
 
-**See [QUICKSTART.md](./QUICKSTART.md) for detailed setup instructions and examples!**
+**See [INSTALL.md](./INSTALL.md) for global installation in Claude Desktop/Code!**
 
-### TL;DR
+### Option 1: Use in Claude Desktop/Code (Recommended)
 
 ```bash
-# 1. Clone and install
+# 1. Install
+cd claude-mcp-agent-github-comments
+uv venv ~/.venvs/github-pr-mcp
+source ~/.venvs/github-pr-mcp/bin/activate
+uv pip install -e .
+
+# 2. Add to Claude config
+# Edit: ~/Library/Application Support/Claude/claude_desktop_config.json
+# See INSTALL.md for complete config
+
+# 3. Restart Claude and use!
+# "Fetch comments from PR 72 using github-pr-comments MCP"
+```
+
+### Option 2: Direct Python Usage
+
+```bash
 git clone https://github.com/MarkEnverus/claude-mcp-agent-github-comments.git
 cd claude-mcp-agent-github-comments
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev]"
 
-# 2. Configure
+# Configure
 cp .env.example .env
 # Edit .env with your GITHUB_TOKEN and GITHUB_REPO
 
-# 3. Use from Claude Code or Python
-# See QUICKSTART.md for examples
+# Run examples
+python examples/basic_usage.py
+```
+
+### Check MCP Usage
+
+```bash
+# See if Claude is using your MCP tools
+./check_mcp_usage.sh
 ```
 
 ## Usage
