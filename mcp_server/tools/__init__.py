@@ -16,6 +16,11 @@ from .code_ops import (
     create_comment_reply,
     resolve_thread,
 )
+from .smart_analysis import (
+    analyze_comment_smart,
+    is_bot_comment,
+    get_bot_comment_filters,
+)
 
 __all__ = [
     "fetch_pr_comments",
@@ -26,4 +31,8 @@ __all__ = [
     "get_pr_diff",
     "create_comment_reply",
     "resolve_thread",
+    # Phase 1.5: Smart analysis
+    "analyze_comment_smart",
+    "is_bot_comment",
+    "get_bot_comment_filters",
 ]
