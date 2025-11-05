@@ -1,0 +1,214 @@
+# GitHub PR Comment Agent Configuration
+
+# Repository settings
+repository:
+  owner: MarkEnverus
+  name: my-repo
+  # Optional: Override with GITHUB_REPO env var
+
+# GitHub API settings
+github:
+  token_env_var: GITHUB_TOKEN
+  api_base_url: https://api.github.com
+  # Rate limiting
+  max_retries: 3
+  retry_delay_seconds: 5
+
+# Comment filtering
+filters:
+  # Authors to include (bot accounts typically)
+  include_authors:
+    - github-copilot
+    - github-advanced-security
+    - dependabot
+    - snyk-bot
+
+  # Exclude comments with these labels
+  exclude_labels:
+    - wontfix
+    - duplicate
+    - invalid
+
+  # Comment types to process
+  comment_types:
+    - review_comment      # PR review comments
+    - issue_comment       # General PR comments
+
+  # Only process comments older than X hours (0 = all)
+  min_age_hours: 0
+
+  # Keywords to prioritize
+  priority_keywords:
+    high:
+      - security
+      - vulnerability
+      - critical
+      - injection
+    medium:
+      - performance
+      - memory leak
+      - race condition
+    low:
+      - style
+      - formatting
+      - typo
+
+# Auto-resolve rules
+auto_resolve:
+  enabled: true
+
+  # Confidence threshold (0.0-1.0) for auto-actions
+  confidence_threshold: 0.85
+
+  rules:
+    - type: already_fixed
+      enabled: true
+      reply_template: |
+        This issue has been addressed in the current code.
+        Resolving as fixed.
+
+    - type: duplicate
+      enabled: true
+      reply_template: |
+        This is a duplicate of comment #{original_comment_id}.
+        Resolving to avoid redundancy.
+
+    - type: outdated_code
+      enabled: true
+      reply_template: |
+        The referenced code has been refactored or removed.
+        This comment is no longer applicable.
+
+    - type: false_positive
+      enabled: true
+      reply_template: |
+        After analysis, this appears to be a false positive.
+        The suggested issue does not apply to this code.
+
+  # Comments requiring human review
+  manual_review_triggers:
+    - low_confidence: true  # Confidence < threshold
+    - security_related: true  # Security keywords present
+    - multiple_conflicts: true  # Conflicting suggestions
+
+# Code fix generation
+fix_generation:
+  enabled: true
+
+  # Always require user approval before applying
+  require_approval: true
+  auto_commit: false
+  auto_push: false
+
+  # Commit message templates
+  commit_message_template: |
+    fix: address PR comment #{comment_id}
+
+    {comment_text}
+
+    Resolves: #{comment_url}
+
+  # Branch settings
+  create_branch: false  # Work on current branch
+  branch_name_template: "fix/pr-comment-{comment_id}"
+
+  # Code style
+  preserve_formatting: true
+  run_formatters: true  # Run black, prettier, etc.
+  formatters:
+    - black
+    - isort
+
+# Interaction preferences
+interaction:
+  # Mode: interactive (ask user), auto (full automation), hybrid (auto with fallback)
+  mode: interactive
+
+  # Display settings
+  show_code_context: true
+  context_lines_before: 10
+  context_lines_after: 10
+  show_diff_preview: true
+  use_syntax_highlighting: true
+
+  # Confirmation prompts
+  confirm_before_fix: true
+  confirm_before_commit: true
+  confirm_before_resolve: true
+
+  # Progress display
+  show_progress_bar: true
+  show_statistics: true
+
+# Claude Agent configuration
+claude:
+  model: claude-sonnet-4-5-20250929
+  max_tokens: 4096
+  temperature: 0.0  # Deterministic for code analysis
+
+  # System prompt customization
+  custom_instructions: |
+    You are an expert code reviewer helping manage PR comments.
+    Prioritize security and correctness over style.
+    Be thorough but concise in your analysis.
+
+  # Tool permissions
+  allowed_tools:
+    - fetch_pr_comments
+    - get_comment_context
+    - analyze_comment_validity
+    - create_comment_reply
+    - apply_code_fix
+    - resolve_thread
+    - batch_analyze_comments
+    - get_pr_diff
+
+# Logging and monitoring
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  file: pr-comment-agent.log
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+  # Audit trail
+  audit:
+    enabled: true
+    log_decisions: true
+    log_actions: true
+    audit_file: pr-comment-agent-audit.log
+
+# Notifications (future feature)
+notifications:
+  enabled: false
+  channels:
+    slack:
+      webhook_url: null
+    teams:
+      webhook_url: null
+  events:
+    - session_complete
+    - high_priority_comment
+    - error_occurred
+
+# Performance settings
+performance:
+  batch_size: 10  # Process comments in batches
+  parallel_analysis: true
+  max_concurrent_requests: 5
+  cache_enabled: true
+  cache_ttl_seconds: 3600
+
+# Safety settings
+safety:
+  dry_run_mode: false  # Preview actions without executing
+  max_comments_per_session: 100
+  require_clean_working_tree: true  # Ensure no uncommitted changes
+  backup_before_apply: true
+
+# Analytics (future feature)
+analytics:
+  enabled: false
+  track_metrics:
+    - time_saved
+    - comments_processed
+    - auto_resolve_accuracy
+    - fix_success_rate
