@@ -33,35 +33,23 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for full details.
 
 ## Quick Start
 
-### Prerequisites
-- Python 3.11+
-- GitHub personal access token with `repo` scope
-- Anthropic API key
+**See [QUICKSTART.md](./QUICKSTART.md) for detailed setup instructions and examples!**
 
-### Installation
+### TL;DR
 
 ```bash
-# Clone the repository
+# 1. Clone and install
 git clone https://github.com/MarkEnverus/claude-mcp-agent-github-comments.git
 cd claude-mcp-agent-github-comments
+uv venv && source .venv/bin/activate
+uv pip install -e ".[dev]"
 
-# Install with pip
-pip install -e .
-
-# Or with poetry
-poetry install
-```
-
-### Configuration
-
-```bash
-# Copy example environment file
+# 2. Configure
 cp .env.example .env
+# Edit .env with your GITHUB_TOKEN and GITHUB_REPO
 
-# Edit with your credentials
-# GITHUB_TOKEN=ghp_xxxxxxxxxxxxx
-# GITHUB_REPO=MarkEnverus/my-repo
-# ANTHROPIC_API_KEY=sk-ant-xxxxx
+# 3. Use from Claude Code or Python
+# See QUICKSTART.md for examples
 ```
 
 ## Usage
@@ -106,23 +94,24 @@ mcp__github-pr__resolve_thread --thread-id xyz789
 
 ## Features
 
-### Current (v0.1.0)
-- Fetch and filter PR comments by author, type, status
-- Analyze comment validity (is the issue still present?)
-- Get code context around comments
-- Generate code fixes with Claude
-- Apply fixes with git commits
-- Reply to comments and resolve threads
-- Interactive review workflow
-- Batch auto-resolve with rules
+### Phase 1: MCP Server ✅ COMPLETE
+- ✅ All 8 MCP tools implemented and functional
+- ✅ Fetch and filter PR comments by author, type, status
+- ✅ Analyze comment validity (is the issue still present?)
+- ✅ Get code context around comments
+- ✅ Apply code fixes with git commits
+- ✅ Reply to comments and resolve threads
+- ✅ Batch analysis with categorization and prioritization
+- ✅ Full PR diff extraction
+- ✅ Use directly from Claude Code or Python
 
-### Roadmap
-- Multi-PR review support
-- Learning from user decisions
-- VS Code extension
-- Slack/Teams notifications
-- Analytics dashboard
-- GitHub Action for auto-triage
+### Coming Soon
+- **Phase 2**: Advanced analysis with Claude integration
+- **Phase 3**: Complete code fix workflow
+- **Phase 4**: Agent SDK for intelligent orchestration
+- **Phase 5**: CLI interface with interactive mode
+- **Phase 6**: GitHub Action for automation
+- **Future**: Multi-PR support, learning system, VS Code extension
 
 ## Examples
 
