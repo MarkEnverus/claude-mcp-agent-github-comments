@@ -192,7 +192,7 @@ def _heuristic_analysis(
 
     # Default: uncertain
     return {
-        "is_valid": None,
+        "is_valid": False,  # Default to False for uncertain cases
         "status": ValidityStatus.UNCERTAIN,
         "confidence": 0.3,
         "reasoning": "Unable to automatically determine validity. Manual review recommended.",
