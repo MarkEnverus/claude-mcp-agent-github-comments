@@ -4,7 +4,7 @@ Pydantic models for GitHub PR comment data structures
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional, List, Dict, Any
+from typing import Any
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -45,13 +45,13 @@ class PRComment(BaseModel):
     author: str
     body: str
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
     status: CommentStatus
 
     # Location information
-    file_path: Optional[str] = None
-    line_number: Optional[int] = None
-    diff_hunk: Optional[str] = None
+    file_path: str | None = None
+    line_number: int | None = None
+    diff_hunk: str | None = None
 
     # Metadata
     url: HttpUrl
@@ -60,9 +60,9 @@ class PRComment(BaseModel):
     repo: str
 
     # Analysis results (populated later)
-    validity: Optional[ValidityStatus] = None
-    confidence: Optional[float] = Field(None, ge=0.0, le=1.0)
-    priority: Optional[Priority] = None
+    validity: ValidityStatus | None = None
+    confidence: float | None = Field(None, ge=0.0, le=1.0)
+    priority: Priority | None = None
 
 
 class CommentContext(BaseModel):
@@ -73,8 +73,8 @@ class CommentContext(BaseModel):
     code_snippet: str
     lines_before: int
     lines_after: int
-    diff_hunk: Optional[str] = None
-    related_changes: List[str] = Field(default_factory=list)
+    diff_hunk: str | None = None
+    related_changes: list[str] = Field(default_factory=list)
 
 
 class ValidityAnalysis(BaseModel):
@@ -94,30 +94,30 @@ class CodeFix(BaseModel):
     original_code: str
     fixed_code: str
     explanation: str
-    commit_message: Optional[str] = None
+    commit_message: str | None = None
 
 
 class FixResult(BaseModel):
     """Result of applying a code fix"""
     success: bool
-    commit_sha: Optional[str] = None
-    diff: Optional[str] = None
+    commit_sha: str | None = None
+    diff: str | None = None
     files_changed: int = 0
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class CommentFilters(BaseModel):
     """Filters for fetching PR comments"""
-    authors: Optional[List[str]] = None
-    status: Optional[CommentStatus] = None
-    types: Optional[List[CommentType]] = None
-    keywords: Optional[List[str]] = None
+    authors: list[str] | None = None
+    status: CommentStatus | None = None
+    types: list[CommentType] | None = None
+    keywords: list[str] | None = None
     min_age_days: int = 0
 
 
 class BatchAnalysisResult(BaseModel):
     """Result of batch comment analysis"""
     total_comments: int
-    categories: Dict[str, int] = Field(default_factory=dict)
-    priorities: List[Dict[str, Any]] = Field(default_factory=list)
-    by_status: Dict[ValidityStatus, int] = Field(default_factory=dict)
+    categories: dict[str, int] = Field(default_factory=dict)
+    priorities: list[dict[str, Any]] = Field(default_factory=list)
+    by_status: dict[ValidityStatus, int] = Field(default_factory=dict)

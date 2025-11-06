@@ -11,9 +11,9 @@ SETUP INSTRUCTIONS:
 
 For more details, see: MCP_SETUP.md
 """
+import asyncio
 import os
 import sys
-import asyncio
 from pathlib import Path
 
 # ==================== CONFIGURATION ====================
@@ -69,14 +69,14 @@ def main():
     except ImportError as e:
         print(f"❌ Package not found: {e}")
         print(f"   Expected location: {VENV_PATH}")
-        print(f"\nTo install:")
-        print(f"  cd <repo-directory>")
-        print(f"  ./scripts/install-mcp-wrapper.sh")
+        print("\nTo install:")
+        print("  cd <repo-directory>")
+        print("  ./scripts/install-mcp-wrapper.sh")
         print("")
         print("Or manually:")
         print(f"  uv venv {VENV_PATH}")
         print(f"  source {VENV_PATH}/bin/activate")
-        print(f"  uv pip install -e .")
+        print("  uv pip install -e .")
         sys.exit(1)
     except Exception as e:
         print(f"❌ Error starting MCP server: {e}")

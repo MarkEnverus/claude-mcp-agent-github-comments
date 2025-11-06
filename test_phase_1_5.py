@@ -10,24 +10,24 @@ Compares:
 import asyncio
 import os
 import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
+from mcp_server.patterns import COMMON_BOT_AUTHORS
 from mcp_server.tools import fetch_pr_comments
 from mcp_server.tools.smart_analysis import (
     analyze_comment_smart,
-    is_bot_comment,
     get_bot_comment_filters,
 )
-from mcp_server.patterns import COMMON_BOT_AUTHORS
 
 
 async def main():
     print("=" * 80)
     print("Phase 1.5: Smart Pattern Analysis Test")
     print("=" * 80)
-    print(f"\nPR: https://github.com/enverus-nv/genai-idp/pull/72\n")
+    print("\nPR: https://github.com/enverus-nv/genai-idp/pull/72\n")
 
     repo = "enverus-nv/genai-idp"
     pr_number = 72
@@ -58,8 +58,8 @@ async def main():
     print(f"\n✅ Found {len(bot_comments)} bot comments")
 
     if bot_comments:
-        authors_found = set(c['author'] for c in bot_comments)
-        print(f"\nBot authors found:")
+        authors_found = {c['author'] for c in bot_comments}
+        print("\nBot authors found:")
         for author in sorted(authors_found):
             count = sum(1 for c in bot_comments if c['author'] == author)
             print(f"  - {author}: {count} comments")
@@ -86,7 +86,7 @@ async def main():
                 repo=repo
             )
 
-            print(f"\n📊 SMART ANALYSIS:")
+            print("\n📊 SMART ANALYSIS:")
             print(f"  Status: {analysis['status']}")
             print(f"  Confidence: {analysis['confidence']:.2f}")
             print(f"  Pattern: {analysis.get('pattern_detected', 'None')}")
@@ -98,14 +98,14 @@ async def main():
             # Show suggested fix if available
             if analysis.get('suggested_fix'):
                 fix = analysis['suggested_fix']
-                print(f"\n  💡 SUGGESTED FIX:")
+                print("\n  💡 SUGGESTED FIX:")
                 print(f"     Original: {fix['original']}")
                 print(f"     Fixed:    {fix['fixed']}")
                 print(f"     Explanation: {fix['explanation']}")
 
             # Show reply template
             if analysis.get('reply_template'):
-                print(f"\n  📝 REPLY TEMPLATE:")
+                print("\n  📝 REPLY TEMPLATE:")
                 print(f"     {analysis['reply_template']}")
 
         except Exception as e:
@@ -139,18 +139,18 @@ async def main():
             if pattern:
                 patterns_detected[pattern] = patterns_detected.get(pattern, 0) + 1
 
-        except:
+        except Exception:
             pass
 
     print("\nPHASE 1 (Heuristic):")
     print(f"  - High Confidence (>0.7): 0 / {len(bot_comments)} (0%)")
     print(f"  - Auto-fixable: 0 / {len(bot_comments)} (0%)")
-    print(f"  - Patterns detected: None")
+    print("  - Patterns detected: None")
 
-    print(f"\nPHASE 1.5 (Smart Patterns):")
+    print("\nPHASE 1.5 (Smart Patterns):")
     print(f"  - High Confidence (>0.7): {high_confidence} / {len(bot_comments)} ({100*high_confidence/len(bot_comments):.0f}%)")
     print(f"  - Auto-fixable: {auto_fixable} / {len(bot_comments)} ({100*auto_fixable/len(bot_comments):.0f}%)")
-    print(f"  - Patterns detected:")
+    print("  - Patterns detected:")
     for pattern, count in sorted(patterns_detected.items()):
         print(f"      • {pattern}: {count}")
 
@@ -173,7 +173,7 @@ async def main():
                     'comment': comment,
                     'analysis': analysis
                 })
-        except:
+        except Exception:
             pass
 
     print(f"\n✅ {len(fixable_comments)} comments can be auto-fixed with high confidence:\n")

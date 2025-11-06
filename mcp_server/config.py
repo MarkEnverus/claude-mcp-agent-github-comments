@@ -2,9 +2,6 @@
 Configuration management for GitHub PR Comment Agent
 """
 
-import os
-from pathlib import Path
-from typing import Optional, List
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict

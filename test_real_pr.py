@@ -12,6 +12,7 @@ This script will:
 import asyncio
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -19,10 +20,10 @@ load_dotenv()
 
 # Import MCP tools
 from mcp_server.tools import (
-    fetch_pr_comments,
-    get_comment_context,
     analyze_comment_validity,
     batch_analyze_comments,
+    fetch_pr_comments,
+    get_comment_context,
 )
 
 
@@ -31,7 +32,7 @@ async def main():
     print("=" * 80)
     print("Testing GitHub PR Comment Agent on Real PR")
     print("=" * 80)
-    print(f"\nPR: https://github.com/enverus-nv/genai-idp/pull/72")
+    print("\nPR: https://github.com/enverus-nv/genai-idp/pull/72")
 
     # Configuration
     repo = "enverus-nv/genai-idp"
@@ -72,7 +73,7 @@ async def main():
             author = comment['author']
             authors[author] = authors.get(author, 0) + 1
 
-        print(f"\nComments by author:")
+        print("\nComments by author:")
         for author, count in sorted(authors.items(), key=lambda x: x[1], reverse=True):
             print(f"  - {author}: {count}")
 
@@ -152,12 +153,12 @@ async def main():
                     lines_after=10
                 )
 
-                print(f"\n✅ Code context retrieved")
-                print(f"\nCode snippet:")
+                print("\n✅ Code context retrieved")
+                print("\nCode snippet:")
                 print(context['code_snippet'])
 
                 if context.get('related_changes'):
-                    print(f"\nRelated changes in PR:")
+                    print("\nRelated changes in PR:")
                     for change in context['related_changes'][:5]:
                         print(f"  - {change}")
 
@@ -182,7 +183,7 @@ async def main():
                     repo=repo
                 )
 
-                print(f"\n✅ Analysis complete")
+                print("\n✅ Analysis complete")
                 print(f"\nStatus: {analysis['status']}")
                 print(f"Is Valid: {analysis['is_valid']}")
                 print(f"Confidence: {analysis['confidence']:.2f}")
@@ -205,10 +206,10 @@ async def main():
             filters={}  # Analyze all
         )
 
-        print(f"\n✅ Batch analysis complete")
+        print("\n✅ Batch analysis complete")
         print(f"\nTotal Comments: {batch_result['total_comments']}")
 
-        print(f"\nCategories:")
+        print("\nCategories:")
         for category, count in sorted(
             batch_result['categories'].items(),
             key=lambda x: x[1],
@@ -227,13 +228,13 @@ async def main():
             p for p in batch_result['priorities'] if p['priority'] == 'low'
         ]
 
-        print(f"\nPriorities:")
+        print("\nPriorities:")
         print(f"  - High: {len(high_priority)}")
         print(f"  - Medium: {len(medium_priority)}")
         print(f"  - Low: {len(low_priority)}")
 
         if high_priority:
-            print(f"\nHigh Priority Comments:")
+            print("\nHigh Priority Comments:")
             for p in high_priority[:5]:
                 print(f"\n  Comment ID: {p['comment_id']}")
                 print(f"  Author: {p['author']}")

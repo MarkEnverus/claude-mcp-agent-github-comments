@@ -5,19 +5,18 @@ Provides low-level GitHub API interactions using PyGithub.
 """
 
 import os
-from typing import List, Optional, Dict, Any
-from datetime import datetime
+from typing import Any
 
-from github import Github, Auth
-from github.PullRequest import PullRequest
+from github import Auth, Github
 from github.IssueComment import IssueComment
+from github.PullRequest import PullRequest
 from github.PullRequestComment import PullRequestComment
 from github.Repository import Repository
 
 from ..models import (
-    PRComment,
-    CommentType,
     CommentStatus,
+    CommentType,
+    PRComment,
 )
 
 
@@ -37,7 +36,7 @@ class GitHubAPIClient:
         auth = Auth.Token(token)
         self.client = Github(auth=auth)
         self.repo_name = repo
-        self._repo: Optional[Repository] = None
+        self._repo: Repository | None = None
 
     @property
     def repo(self) -> Repository:
@@ -50,7 +49,7 @@ class GitHubAPIClient:
         """Get PR by number"""
         return self.repo.get_pull(pr_number)
 
-    def get_pr_review_comments(self, pr_number: int) -> List[PullRequestComment]:
+    def get_pr_review_comments(self, pr_number: int) -> list[PullRequestComment]:
         """
         Get review comments (inline code comments) for a PR
 
@@ -63,7 +62,7 @@ class GitHubAPIClient:
         pr = self.get_pull_request(pr_number)
         return list(pr.get_review_comments())
 
-    def get_pr_issue_comments(self, pr_number: int) -> List[IssueComment]:
+    def get_pr_issue_comments(self, pr_number: int) -> list[IssueComment]:
         """
         Get issue comments (general PR comments) for a PR
 
@@ -76,7 +75,7 @@ class GitHubAPIClient:
         pr = self.get_pull_request(pr_number)
         return list(pr.get_issue_comments())
 
-    def get_all_pr_comments(self, pr_number: int) -> List[PRComment]:
+    def get_all_pr_comments(self, pr_number: int) -> list[PRComment]:
         """
         Get all comments (both review and issue) for a PR
 
@@ -150,7 +149,7 @@ class GitHubAPIClient:
 
     def create_comment_reply(
         self, comment_id: str, pr_number: int, body: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Reply to a PR comment
 
@@ -176,7 +175,7 @@ class GitHubAPIClient:
 
     def resolve_thread(
         self, comment_id: str, pr_number: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Resolve a comment thread
 
@@ -202,7 +201,7 @@ class GitHubAPIClient:
         }
 
     def get_file_content(
-        self, file_path: str, ref: Optional[str] = None
+        self, file_path: str, ref: str | None = None
     ) -> str:
         """
         Get file content from repository
@@ -221,7 +220,7 @@ class GitHubAPIClient:
                 raise ValueError(f"{file_path} is a directory, not a file")
             return content.decoded_content.decode("utf-8")
         except Exception as e:
-            raise Exception(f"Failed to get file content: {e}")
+            raise Exception(f"Failed to get file content: {e}") from e
 
     def get_pr_diff(self, pr_number: int) -> str:
         """
@@ -247,7 +246,7 @@ class GitHubAPIClient:
 
         return "\n".join(diff_parts)
 
-    def get_pr_files(self, pr_number: int) -> List[Dict[str, Any]]:
+    def get_pr_files(self, pr_number: int) -> list[dict[str, Any]]:
         """
         Get list of files changed in PR
 
@@ -277,11 +276,11 @@ class GitHubAPIClient:
 
 
 # Singleton instance (can be initialized once and reused)
-_client: Optional[GitHubAPIClient] = None
+_client: GitHubAPIClient | None = None
 
 
 def get_github_client(
-    token: Optional[str] = None, repo: Optional[str] = None
+    token: str | None = None, repo: str | None = None
 ) -> GitHubAPIClient:
     """
     Get or create GitHub API client

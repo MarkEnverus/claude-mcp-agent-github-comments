@@ -5,8 +5,8 @@ Provides MCP tools for applying code fixes and managing git operations.
 """
 
 import os
-from typing import Dict, Any, Optional
 from pathlib import Path
+from typing import Any
 
 import git
 
@@ -19,9 +19,9 @@ async def apply_code_fix(
     line_number: int,
     fix_content: str,
     repo: str,
-    commit_message: Optional[str] = None,
-    repo_path: Optional[str] = None,
-) -> Dict[str, Any]:
+    commit_message: str | None = None,
+    repo_path: str | None = None,
+) -> dict[str, Any]:
     """
     Apply a code fix to address a PR comment
 
@@ -84,7 +84,7 @@ async def apply_code_fix(
             ).model_dump(mode="json")
 
         # Read current content
-        with open(full_path, "r") as f:
+        with open(full_path) as f:
             lines = f.readlines()
 
         # Apply fix
@@ -166,7 +166,7 @@ async def create_comment_reply(
     pr_number: int,
     repo: str,
     message: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Reply to a PR comment
 
@@ -200,8 +200,8 @@ async def resolve_thread(
     comment_id: str,
     pr_number: int,
     repo: str,
-    reason: Optional[str] = None,
-) -> Dict[str, Any]:
+    reason: str | None = None,
+) -> dict[str, Any]:
     """
     Resolve a comment thread
 

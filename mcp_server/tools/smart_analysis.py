@@ -5,9 +5,10 @@ Enhanced version of analysis tools that use pattern matching
 for higher accuracy without requiring LLM API calls.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 from ..models import ValidityAnalysis, ValidityStatus
-from ..patterns import SmartAnalyzer, COMMON_BOT_AUTHORS
+from ..patterns import COMMON_BOT_AUTHORS, SmartAnalyzer
 from .comments import get_comment_context
 from .github_api import get_github_client
 
@@ -16,7 +17,7 @@ async def analyze_comment_smart(
     comment_id: str,
     pr_number: int,
     repo: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Smart analysis using pattern recognition (Phase 1.5)
 
@@ -103,7 +104,7 @@ def is_bot_comment(author: str) -> bool:
     return author in COMMON_BOT_AUTHORS
 
 
-def get_bot_comment_filters() -> Dict[str, Any]:
+def get_bot_comment_filters() -> dict[str, Any]:
     """
     Get pre-configured filters for bot comments
 

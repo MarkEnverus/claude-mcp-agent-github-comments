@@ -4,24 +4,24 @@ Comment analysis tools
 Provides MCP tools for analyzing comment validity and batch processing.
 """
 
-from typing import Dict, Any, List
 from collections import defaultdict
+from typing import Any
 
 from ..models import (
+    BatchAnalysisResult,
+    Priority,
     ValidityAnalysis,
     ValidityStatus,
-    Priority,
-    BatchAnalysisResult,
 )
-from .github_api import get_github_client
 from .comments import get_comment_context
+from .github_api import get_github_client
 
 
 async def analyze_comment_validity(
     comment_id: str,
     pr_number: int,
     repo: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Analyze if issue mentioned in comment is still present
 
@@ -87,7 +87,7 @@ async def analyze_comment_validity(
 
 def _heuristic_analysis(
     comment_body: str, code_snippet: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Perform heuristic analysis of comment vs code
 
@@ -103,20 +103,6 @@ def _heuristic_analysis(
     """
     comment_lower = comment_body.lower()
     code_lower = code_snippet.lower()
-
-    # Security-related keywords
-    security_keywords = [
-        "security",
-        "vulnerability",
-        "injection",
-        "xss",
-        "sql",
-        "authentication",
-        "authorization",
-    ]
-
-    # Check for common patterns
-    is_security = any(kw in comment_lower for kw in security_keywords)
 
     # Check for null/undefined checks
     if "null" in comment_lower or "undefined" in comment_lower:
@@ -203,8 +189,8 @@ def _heuristic_analysis(
 async def batch_analyze_comments(
     pr_number: int,
     repo: str,
-    filters: Dict[str, Any] = None,
-) -> Dict[str, Any]:
+    filters: dict[str, Any] = None,
+) -> dict[str, Any]:
     """
     Analyze multiple comments at once with prioritization
 

@@ -8,6 +8,7 @@ from Python without the Agent SDK or CLI.
 
 import asyncio
 import os
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -15,10 +16,10 @@ load_dotenv()
 
 # Import MCP tools
 from mcp_server.tools import (
-    fetch_pr_comments,
-    get_comment_context,
     analyze_comment_validity,
     batch_analyze_comments,
+    fetch_pr_comments,
+    get_comment_context,
 )
 
 
@@ -68,11 +69,11 @@ async def example_2_get_context(comment_id: str, pr_number: int):
     print(f"\nComment ID: {comment_id}")
     print(f"File: {context['file_path']}")
     print(f"Line: {context['line_number']}")
-    print(f"\nCode Context:")
+    print("\nCode Context:")
     print(context["code_snippet"])
 
     if context.get("diff_hunk"):
-        print(f"\nDiff Hunk:")
+        print("\nDiff Hunk:")
         print(context["diff_hunk"])
 
 
@@ -111,11 +112,11 @@ async def example_4_batch_analysis(pr_number: int):
     )
 
     print(f"\nTotal Comments: {result['total_comments']}")
-    print(f"\nCategories:")
+    print("\nCategories:")
     for category, count in result["categories"].items():
         print(f"  - {category}: {count}")
 
-    print(f"\nPriorities:")
+    print("\nPriorities:")
     high_priority = [
         p for p in result["priorities"] if p["priority"] == "high"
     ]
@@ -131,7 +132,7 @@ async def example_4_batch_analysis(pr_number: int):
     print(f"  - Low: {len(low_priority)}")
 
     if high_priority:
-        print(f"\nHigh Priority Comments:")
+        print("\nHigh Priority Comments:")
         for p in high_priority[:3]:
             print(
                 f"  - {p['file_path']}:{p['line_number']} ({p['category']})"

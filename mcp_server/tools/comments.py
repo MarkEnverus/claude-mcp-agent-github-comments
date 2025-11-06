@@ -5,18 +5,18 @@ Provides MCP tools for fetching and filtering PR comments,
 and getting code context around comments.
 """
 
-from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
+from typing import Any
 
-from ..models import PRComment, CommentFilters, CommentContext
+from ..models import CommentContext, CommentFilters, PRComment
 from .github_api import get_github_client
 
 
 async def fetch_pr_comments(
     pr_number: int,
     repo: str,
-    filters: Optional[Dict[str, Any]] = None,
-) -> List[Dict[str, Any]]:
+    filters: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """
     Fetch PR comments with intelligent filtering
 
@@ -64,8 +64,8 @@ async def fetch_pr_comments(
 
 
 def _apply_filters(
-    comments: List[PRComment], filters: CommentFilters
-) -> List[PRComment]:
+    comments: list[PRComment], filters: CommentFilters
+) -> list[PRComment]:
     """
     Apply filters to comment list
 
@@ -114,7 +114,7 @@ async def get_comment_context(
     repo: str,
     lines_before: int = 10,
     lines_after: int = 10,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get code context around a comment location
 

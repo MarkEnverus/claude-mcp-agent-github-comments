@@ -11,15 +11,16 @@ Interactive workflow to:
 import asyncio
 import os
 import sys
+
 from dotenv import load_dotenv
 
 load_dotenv()
 
 from mcp_server.tools import (
-    fetch_pr_comments,
     analyze_comment_smart,
-    get_bot_comment_filters,
     create_comment_reply,
+    fetch_pr_comments,
+    get_bot_comment_filters,
     resolve_thread,
 )
 
@@ -61,7 +62,7 @@ async def main():
                     'comment': comment,
                     'analysis': analysis
                 })
-        except:
+        except Exception:
             pass
 
     print(f"\n✅ Found {len(fixable)} auto-fixable comments\n")
@@ -78,7 +79,7 @@ async def main():
         print(f"FIX #{i} of {len(fixable)}")
         print(f"{'=' * 80}")
 
-        print(f"\n📍 Location:")
+        print("\n📍 Location:")
         print(f"   File: {comment.get('file_path')}")
         print(f"   Line: {comment.get('line_number')}")
 
@@ -88,20 +89,20 @@ async def main():
             body = body[:200] + "..."
         print(f"   {body}")
 
-        print(f"\n📊 Analysis:")
+        print("\n📊 Analysis:")
         print(f"   Pattern: {analysis.get('pattern_detected')}")
         print(f"   Confidence: {analysis['confidence']:.2f}")
         print(f"   Status: {analysis['status']}")
 
         if analysis.get('suggested_fix'):
             fix = analysis['suggested_fix']
-            print(f"\n🔧 Suggested Fix:")
+            print("\n🔧 Suggested Fix:")
             print(f"   Original: {fix.get('original', 'N/A')}")
             print(f"   Fixed:    {fix.get('fixed', 'N/A')}")
             print(f"   Explanation: {fix.get('explanation', 'N/A')}")
 
         if analysis.get('reply_template'):
-            print(f"\n📝 Reply Template:")
+            print("\n📝 Reply Template:")
             print(f"   {analysis['reply_template']}")
 
     # Step 3: Manual fix instructions
@@ -139,7 +140,7 @@ you'll need to apply these fixes manually. Here's the workflow:
             if analysis.get('suggested_fix'):
                 fix = analysis['suggested_fix']
                 if fix.get('original'):
-                    print(f"    Change:")
+                    print("    Change:")
                     print(f"      FROM: {fix['original']}")
                     print(f"      TO:   {fix['fixed']}")
 
@@ -161,17 +162,17 @@ you'll need to apply these fixes manually. Here's the workflow:
         print(f"\n# Fix #{i}")
         print(f"# Comment ID: {comment['id']}")
         print(f"# File: {comment.get('file_path')}:{comment.get('line_number')}")
-        print(f"await create_comment_reply(")
+        print("await create_comment_reply(")
         print(f"    comment_id='{comment['id']}',")
         print(f"    pr_number={pr_number},")
         print(f"    repo='{repo}',")
         print(f"    message='{reply}'")
-        print(f")")
-        print(f"await resolve_thread(")
+        print(")")
+        print("await resolve_thread(")
         print(f"    comment_id='{comment['id']}',")
         print(f"    pr_number={pr_number},")
         print(f"    repo='{repo}'")
-        print(f")")
+        print(")")
 
     # Step 5: Interactive mode
     print("\n\n" + "=" * 80)
@@ -203,14 +204,14 @@ you'll need to apply these fixes manually. Here's the workflow:
                 print(f"   ✅ Reply posted: {reply_result.get('url', 'success')}")
 
                 # Resolve thread
-                resolve_result = await resolve_thread(
+                await resolve_thread(
                     comment_id=comment['id'],
                     pr_number=pr_number,
                     repo=repo,
-                    reason=f"Fixed per Phase 1.5 analysis"
+                    reason="Fixed per Phase 1.5 analysis"
                 )
 
-                print(f"   ✅ Thread resolved")
+                print("   ✅ Thread resolved")
 
             except Exception as e:
                 print(f"   ❌ Error: {e}")

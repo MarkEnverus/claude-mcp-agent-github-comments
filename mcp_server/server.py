@@ -5,24 +5,23 @@ This module sets up and runs the MCP server that exposes
 GitHub PR comment management tools.
 """
 
-import os
-import sys
 import asyncio
 import logging
-from typing import Optional
+import os
+import sys
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import Tool, TextContent
+from mcp.types import TextContent, Tool
 
 from .tools import (
+    analyze_comment_validity,
+    apply_code_fix,
+    batch_analyze_comments,
+    create_comment_reply,
     fetch_pr_comments,
     get_comment_context,
-    analyze_comment_validity,
-    batch_analyze_comments,
-    apply_code_fix,
     get_pr_diff,
-    create_comment_reply,
     resolve_thread,
 )
 

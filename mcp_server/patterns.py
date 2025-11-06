@@ -6,8 +6,8 @@ common issues without requiring LLM API calls.
 """
 
 import re
-from typing import Optional, Dict, Any, List, Tuple
 from enum import Enum
+from typing import Any
 
 
 class FixPattern(str, Enum):
@@ -80,7 +80,7 @@ class PatternMatcher:
     ]
 
     @classmethod
-    def identify_pattern(cls, comment_body: str) -> Optional[FixPattern]:
+    def identify_pattern(cls, comment_body: str) -> FixPattern | None:
         """
         Identify which fix pattern matches the comment
 
@@ -90,8 +90,6 @@ class PatternMatcher:
         Returns:
             FixPattern if recognized, None otherwise
         """
-        body_lower = comment_body.lower()
-
         # Check unused imports
         for pattern in cls.UNUSED_IMPORT_PATTERNS:
             if re.search(pattern, comment_body, re.IGNORECASE):
@@ -120,7 +118,7 @@ class PatternMatcher:
         return None
 
     @classmethod
-    def extract_import_names(cls, comment_body: str) -> List[str]:
+    def extract_import_names(cls, comment_body: str) -> list[str]:
         """
         Extract import names mentioned in comment
 
@@ -146,10 +144,10 @@ class FixGenerator:
 
     @staticmethod
     def fix_unused_import(
-        code_lines: List[str],
+        code_lines: list[str],
         line_number: int,
-        unused_names: List[str]
-    ) -> Tuple[str, str]:
+        unused_names: list[str]
+    ) -> tuple[str, str]:
         """
         Generate fix for unused import
 
@@ -180,7 +178,7 @@ class FixGenerator:
 
                 if not kept_imports:
                     # All imports unused - remove entire line
-                    return "", f"Removed entire import (all imports unused)"
+                    return "", "Removed entire import (all imports unused)"
                 else:
                     # Rebuild line
                     fixed_line = prefix + ", ".join(kept_imports)
@@ -204,9 +202,9 @@ class FixGenerator:
 
     @staticmethod
     def fix_import_location(
-        code_lines: List[str],
+        code_lines: list[str],
         line_number: int
-    ) -> Tuple[List[str], str]:
+    ) -> tuple[list[str], str]:
         """
         Generate fix for import in wrong location
 
@@ -268,7 +266,7 @@ class ReplyTemplate:
     """Templates for common reply scenarios"""
 
     @staticmethod
-    def unused_import(import_names: List[str], fixed: bool = True) -> str:
+    def unused_import(import_names: list[str], fixed: bool = True) -> str:
         """Reply for unused import fix"""
         names = ", ".join(f"`{name}`" for name in import_names)
         if fixed:
@@ -321,7 +319,7 @@ class SmartAnalyzer:
         code_snippet: str,
         file_path: str,
         line_number: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Enhanced analysis using pattern recognition
 
@@ -370,7 +368,7 @@ class SmartAnalyzer:
 
     def _analyze_unused_import(
         self, comment_body: str, code_snippet: str, line_number: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Analyze unused import"""
         unused_names = self.matcher.extract_import_names(comment_body)
 
@@ -401,7 +399,7 @@ class SmartAnalyzer:
                     "fixed": fixed_line.strip(),
                     "explanation": explanation
                 }
-            except:
+            except Exception:
                 pass
 
         return {
@@ -418,7 +416,7 @@ class SmartAnalyzer:
 
     def _analyze_import_location(
         self, comment_body: str, code_snippet: str, line_number: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Analyze import location issue"""
         # Check if it's actually an import statement
         is_import = "import " in code_snippet or "from " in code_snippet
@@ -444,7 +442,7 @@ class SmartAnalyzer:
 
     def _analyze_duplicate_import(
         self, comment_body: str, code_snippet: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Analyze duplicate import"""
         return {
             "pattern_detected": "duplicate_import",
