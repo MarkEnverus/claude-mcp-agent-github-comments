@@ -1,0 +1,34 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "reviewThreads": {
+          "nodes": [
+            {
+              "id": "PRRT_test_thread_1",
+              "isResolved": false,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 12345
+                  }
+                ]
+              }
+            },
+            {
+              "id": "PRRT_test_thread_2",
+              "isResolved": true,
+              "comments": {
+                "nodes": [
+                  {
+                    "databaseId": 67890
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

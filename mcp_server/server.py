@@ -23,6 +23,9 @@ from .tools import (
     get_comment_context,
     get_pr_diff,
     resolve_thread,
+    prepare_comment_decisions,
+    execute_comment_decision,
+    bulk_close_comments,
 )
 
 # Configure logging
@@ -323,6 +326,133 @@ def create_github_pr_mcp_server(
                     "required": ["comment_id", "pr_number", "repo"],
                 },
             ),
+            Tool(
+                name="prepare_comment_decisions",
+                description=(
+                    "Prepare structured data for uncertain comments that need user decisions. "
+                    "Returns comments with full context, AI analysis, and suggested questions "
+                    "for Claude to present to the user via AskUserQuestion tool. "
+                    "Use this when you want to interactively ask the user about uncertain comments. "
+                    "IMPORTANT: Ask user if they want fast_mode (pattern matching, ~5sec) or thorough mode (LLM analysis, ~60sec) before calling."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "pr_number": {
+                            "type": "integer",
+                            "description": "PR number to analyze",
+                        },
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'",
+                        },
+                        "filters": {
+                            "type": "object",
+                            "description": "Optional filters (status, author, etc)",
+                            "properties": {
+                                "status": {
+                                    "type": "string",
+                                    "description": "Filter by status (open, resolved)",
+                                },
+                                "author": {
+                                    "type": "string",
+                                    "description": "Filter by author",
+                                },
+                            },
+                        },
+                        "fast_mode": {
+                            "type": "boolean",
+                            "description": "Use fast pattern matching (~5sec) instead of LLM analysis (~60sec). Ask user before calling.",
+                            "default": False,
+                        },
+                    },
+                    "required": ["pr_number", "repo"],
+                },
+            ),
+            Tool(
+                name="execute_comment_decision",
+                description=(
+                    "Execute a user's decision on a PR comment. "
+                    "Takes the user's choice (fix/dismiss/skip) and performs appropriate GitHub actions: "
+                    "posts replies and optionally resolves threads. "
+                    "Use this after getting user input via AskUserQuestion."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "comment_id": {
+                            "type": "string",
+                            "description": "Comment ID to act on",
+                        },
+                        "pr_number": {
+                            "type": "integer",
+                            "description": "PR number",
+                        },
+                        "action": {
+                            "type": "string",
+                            "enum": ["fix", "dismiss", "skip"],
+                            "description": (
+                                "Action to take: 'fix' (acknowledge, keep open), "
+                                "'dismiss' (resolve thread), 'skip' (no action)"
+                            ),
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "Optional custom message to post (uses default if not provided)",
+                        },
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'",
+                        },
+                    },
+                    "required": ["comment_id", "pr_number", "action", "repo"],
+                },
+            ),
+            Tool(
+                name="bulk_close_comments",
+                description=(
+                    "Bulk close all comments with a generic message. "
+                    "Fast operation that posts a generic acknowledgment to each comment "
+                    "and optionally resolves all threads. No LLM analysis - just reads and closes. "
+                    "Use this when you want to quickly acknowledge all comments without individual decisions."
+                ),
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "pr_number": {
+                            "type": "integer",
+                            "description": "PR number",
+                        },
+                        "repo": {
+                            "type": "string",
+                            "description": "Repository in format 'owner/repo'",
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "Message to post to all comments (default: '✅ Acknowledged by MCP - thread closed')",
+                        },
+                        "filters": {
+                            "type": "object",
+                            "description": "Optional filters (status, author, etc)",
+                            "properties": {
+                                "status": {
+                                    "type": "string",
+                                    "description": "Filter by status (open, resolved)",
+                                },
+                                "author": {
+                                    "type": "string",
+                                    "description": "Filter by author (e.g., 'Copilot')",
+                                },
+                            },
+                        },
+                        "resolve_threads": {
+                            "type": "boolean",
+                            "description": "Whether to resolve threads after posting (default: True)",
+                        },
+                    },
+                    "required": ["pr_number", "repo"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -350,6 +480,12 @@ def create_github_pr_mcp_server(
                 result = await create_comment_reply(**arguments)
             elif name == "resolve_thread":
                 result = await resolve_thread(**arguments)
+            elif name == "prepare_comment_decisions":
+                result = await prepare_comment_decisions(**arguments)
+            elif name == "execute_comment_decision":
+                result = await execute_comment_decision(**arguments)
+            elif name == "bulk_close_comments":
+                result = await bulk_close_comments(**arguments)
             else:
                 raise ValueError(f"Unknown tool: {name}")
 

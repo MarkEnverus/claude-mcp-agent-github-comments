@@ -21,6 +21,11 @@ from .smart_analysis import (
     get_bot_comment_filters,
     is_bot_comment,
 )
+from .interactive import (
+    prepare_comment_decisions,
+    execute_comment_decision,
+    bulk_close_comments,
+)
 
 __all__ = [
     "fetch_pr_comments",
@@ -35,4 +40,8 @@ __all__ = [
     "analyze_comment_smart",
     "is_bot_comment",
     "get_bot_comment_filters",
+    # Phase 2: Interactive workflows
+    "prepare_comment_decisions",
+    "execute_comment_decision",
+    "bulk_close_comments",
 ]

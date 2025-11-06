@@ -1,10 +1,12 @@
 """
 GitHub API wrapper for PR comment operations
 
-Provides low-level GitHub API interactions using PyGithub.
+Provides low-level GitHub API interactions using PyGithub and GraphQL.
 """
 
+import json
 import os
+import subprocess
 from typing import Any
 
 from github import Auth, Github
@@ -36,7 +38,9 @@ class GitHubAPIClient:
         auth = Auth.Token(token)
         self.client = Github(auth=auth)
         self.repo_name = repo
+        self.token = token
         self._repo: Repository | None = None
+        self._thread_status_cache: dict[str, CommentStatus] = {}  # Cache for thread statuses
 
     @property
     def repo(self) -> Repository:
@@ -139,19 +143,79 @@ class GitHubAPIClient:
         )
 
     def _get_comment_status(self, comment: PullRequestComment) -> CommentStatus:
-        """Determine comment status"""
-        # PyGithub doesn't directly expose resolved status
-        # This is a simplified implementation
-        # In practice, we'd need to check the review thread status
-        if hasattr(comment, "pull_request_review_id"):
+        """
+        Determine comment thread status using GraphQL API
+
+        Args:
+            comment: PullRequestComment object
+
+        Returns:
+            CommentStatus.OPEN or CommentStatus.RESOLVED
+        """
+        comment_id = str(comment.id)
+
+        # Check cache first
+        if comment_id in self._thread_status_cache:
+            return self._thread_status_cache[comment_id]
+
+        try:
+            # Query GraphQL for thread status
+            # We need to find the thread that contains this comment
+            owner, repo_name = self.repo_name.split("/")
+            pr_number = comment.pull_request_url.split("/")[-1]
+
+            query = f"""
+            {{
+              repository(owner: "{owner}", name: "{repo_name}") {{
+                pullRequest(number: {pr_number}) {{
+                  reviewThreads(first: 100) {{
+                    nodes {{
+                      id
+                      isResolved
+                      comments(first: 100) {{
+                        nodes {{
+                          databaseId
+                        }}
+                      }}
+                    }}
+                  }}
+                }}
+              }}
+            }}
+            """
+
+            data = self._graphql_query(query)
+
+            # Find the thread containing this comment
+            threads = data.get("repository", {}).get("pullRequest", {}).get("reviewThreads", {}).get("nodes", [])
+
+            for thread in threads:
+                comment_ids = [
+                    c["databaseId"]
+                    for c in thread.get("comments", {}).get("nodes", [])
+                ]
+                if comment.id in comment_ids:
+                    is_resolved = thread.get("isResolved", False)
+                    status = CommentStatus.RESOLVED if is_resolved else CommentStatus.OPEN
+
+                    # Cache the result
+                    self._thread_status_cache[comment_id] = status
+                    return status
+
+            # If thread not found, assume open
+            self._thread_status_cache[comment_id] = CommentStatus.OPEN
             return CommentStatus.OPEN
-        return CommentStatus.OPEN
+
+        except Exception:
+            # If GraphQL fails, fall back to OPEN
+            # Don't cache failures to allow retry
+            return CommentStatus.OPEN
 
     def create_comment_reply(
         self, comment_id: str, pr_number: int, body: str
     ) -> dict[str, Any]:
         """
-        Reply to a PR comment
+        Reply to a PR comment (creates threaded reply for review comments)
 
         Args:
             comment_id: Comment ID to reply to
@@ -159,46 +223,176 @@ class GitHubAPIClient:
             body: Reply text
 
         Returns:
-            Reply comment data
+            Reply comment data with id, url, and body
+
+        Raises:
+            ValueError: If comment not found
+            Exception: If API call fails
         """
         pr = self.get_pull_request(pr_number)
 
-        # Try to find the comment and reply
-        # This is a simplified implementation
-        reply = pr.create_issue_comment(body)
+        # Try to find the comment among review comments
+        try:
+            review_comments = list(pr.get_review_comments())
+            comment_id_int = int(comment_id)
 
-        return {
-            "id": str(reply.id),
-            "url": reply.html_url,
-            "body": reply.body,
-        }
+            for comment in review_comments:
+                if comment.id == comment_id_int:
+                    # This is a review comment - create threaded reply
+                    reply = pr.create_review_comment_reply(
+                        comment_id=comment_id_int,
+                        body=body
+                    )
+
+                    return {
+                        "id": str(reply.id),
+                        "url": reply.html_url,
+                        "body": reply.body,
+                        "type": "review_comment_reply",
+                    }
+
+        except ValueError:
+            pass  # comment_id not an integer, might be an issue comment
+
+        # Try issue comments
+        try:
+            issue_comments = list(pr.get_issue_comments())
+            comment_id_int = int(comment_id)
+
+            for comment in issue_comments:
+                if comment.id == comment_id_int:
+                    # This is an issue comment - create general PR comment
+                    # Issue comments don't have direct threading, so post a reference
+                    reply_body = f"> Replying to comment {comment_id}\n\n{body}"
+                    reply = pr.create_issue_comment(reply_body)
+
+                    return {
+                        "id": str(reply.id),
+                        "url": reply.html_url,
+                        "body": reply.body,
+                        "type": "issue_comment",
+                    }
+
+        except ValueError:
+            pass
+
+        # Comment not found
+        raise ValueError(
+            f"Comment {comment_id} not found in PR {pr_number}. "
+            "It may have been deleted or is from a different PR."
+        )
 
     def resolve_thread(
         self, comment_id: str, pr_number: int
     ) -> dict[str, Any]:
         """
-        Resolve a comment thread
+        Resolve a comment thread using GraphQL API
 
         Args:
-            comment_id: Comment/thread ID to resolve
+            comment_id: Comment ID (will find its thread)
             pr_number: PR number
 
         Returns:
-            Resolution status
+            Resolution status with thread_id and is_resolved
 
-        Note:
-            GitHub's REST API doesn't directly support resolving threads.
-            This would typically require GraphQL API.
-            This is a placeholder implementation.
+        Raises:
+            ValueError: If comment or thread not found
+            Exception: If GraphQL mutation fails
         """
-        # TODO: Implement using GraphQL API
-        # For now, return success status
-        return {
-            "comment_id": comment_id,
-            "status": "resolved",
-            "method": "placeholder",
-            "note": "Full implementation requires GraphQL API",
-        }
+        try:
+            # First, find the thread ID for this comment
+            owner, repo_name = self.repo_name.split("/")
+
+            query = f"""
+            {{
+              repository(owner: "{owner}", name: "{repo_name}") {{
+                pullRequest(number: {pr_number}) {{
+                  reviewThreads(first: 100) {{
+                    nodes {{
+                      id
+                      isResolved
+                      comments(first: 100) {{
+                        nodes {{
+                          databaseId
+                        }}
+                      }}
+                    }}
+                  }}
+                }}
+              }}
+            }}
+            """
+
+            data = self._graphql_query(query)
+
+            # Find the thread containing this comment
+            threads = data.get("repository", {}).get("pullRequest", {}).get("reviewThreads", {}).get("nodes", [])
+
+            thread_id = None
+            already_resolved = False
+            comment_id_int = int(comment_id)
+
+            for thread in threads:
+                comment_ids = [
+                    c["databaseId"]
+                    for c in thread.get("comments", {}).get("nodes", [])
+                ]
+                if comment_id_int in comment_ids:
+                    thread_id = thread["id"]
+                    already_resolved = thread.get("isResolved", False)
+                    break
+
+            if not thread_id:
+                raise ValueError(
+                    f"No review thread found containing comment {comment_id} in PR {pr_number}"
+                )
+
+            if already_resolved:
+                # Already resolved, return success
+                return {
+                    "comment_id": comment_id,
+                    "thread_id": thread_id,
+                    "status": "already_resolved",
+                    "is_resolved": True,
+                }
+
+            # Resolve the thread using GraphQL mutation
+            mutation = f"""
+            mutation {{
+              resolveReviewThread(input: {{threadId: "{thread_id}"}}) {{
+                thread {{
+                  id
+                  isResolved
+                }}
+              }}
+            }}
+            """
+
+            result = self._graphql_mutation(mutation)
+
+            # Extract result
+            thread_data = result.get("resolveReviewThread", {}).get("thread", {})
+            is_resolved = thread_data.get("isResolved", False)
+
+            # Clear cache for this comment
+            if comment_id in self._thread_status_cache:
+                del self._thread_status_cache[comment_id]
+
+            if is_resolved:
+                return {
+                    "comment_id": comment_id,
+                    "thread_id": thread_id,
+                    "status": "resolved",
+                    "is_resolved": True,
+                }
+            else:
+                raise Exception(f"Thread {thread_id} resolution failed - isResolved is still False")
+
+        except ValueError as e:
+            # Re-raise ValueError with original message
+            raise e
+        except Exception as e:
+            raise Exception(f"Failed to resolve thread for comment {comment_id}: {e}") from e
 
     def get_file_content(
         self, file_path: str, ref: str | None = None
@@ -273,6 +467,56 @@ class GitHubAPIClient:
             )
 
         return result
+
+    def _graphql_query(self, query: str) -> dict[str, Any]:
+        """
+        Execute a GraphQL query using gh CLI
+
+        Args:
+            query: GraphQL query string
+
+        Returns:
+            Query response data
+
+        Raises:
+            Exception: If GraphQL query fails
+        """
+        try:
+            result = subprocess.run(
+                ["gh", "api", "graphql", "-f", f"query={query}"],
+                capture_output=True,
+                text=True,
+                check=True,
+                env={**os.environ, "GH_TOKEN": self.token},
+            )
+            response = json.loads(result.stdout)
+
+            if "errors" in response:
+                error_msg = "; ".join([e.get("message", str(e)) for e in response["errors"]])
+                raise Exception(f"GraphQL query error: {error_msg}")
+
+            return response.get("data", {})
+
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Failed to execute GraphQL query: {e.stderr}") from e
+        except json.JSONDecodeError as e:
+            raise Exception(f"Failed to parse GraphQL response: {e}") from e
+
+    def _graphql_mutation(self, mutation: str) -> dict[str, Any]:
+        """
+        Execute a GraphQL mutation using gh CLI
+
+        Args:
+            mutation: GraphQL mutation string
+
+        Returns:
+            Mutation response data
+
+        Raises:
+            Exception: If GraphQL mutation fails
+        """
+        # Mutations use the same API as queries
+        return self._graphql_query(mutation)
 
 
 # Singleton instance (can be initialized once and reused)
