@@ -1,0 +1,27 @@
+================================================================================
+COPY-PASTE THIS INTO NEW CLAUDE CONVERSATION IF MCP SERVER DOESN'T WORK
+================================================================================
+
+I need help with my GitHub PR Comment MCP Server that's not working.
+
+QUICK CONTEXT:
+- Project: /Users/mark.johnson/Desktop/source/repos/mark.johnson/claude_mcp_agent_github_comments/
+- Config: /Users/mark.johnson/Library/Application Support/Claude/claude_desktop_config.json
+- We just fixed 3 broken functions and added 18 tests (all passing)
+- MCP server should auto-load but isn't working
+
+PLEASE DO THIS:
+1. Read the troubleshooting guide: /Users/mark.johnson/Desktop/source/repos/mark.johnson/claude_mcp_agent_github_comments/docs/troubleshooting.md
+2. Check installation guide: /Users/mark.johnson/Desktop/source/repos/mark.johnson/claude_mcp_agent_github_comments/docs/installation.md
+3. Help me debug based on the output
+
+VERIFICATION OUTPUT:
+[paste the output of verify_mcp_setup.sh here]
+
+WHAT'S HAPPENING:
+[describe the issue - MCP tools not showing up, tools showing errors, etc.]
+
+LOGS (if any errors):
+[run: tail -50 /tmp/github-pr-mcp.log and paste here]
+
+================================================================================

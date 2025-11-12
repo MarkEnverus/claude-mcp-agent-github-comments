@@ -19,7 +19,10 @@ class Settings(BaseSettings):
 
     # GitHub settings
     github_token: str = Field(..., description="GitHub personal access token")
-    github_repo: str = Field(..., description="Repository in format owner/repo")
+    github_repo: str | None = Field(
+        default=None,
+        description="Repository in format owner/repo (auto-detected from git remote if not provided)"
+    )
     github_api_base_url: str = "https://api.github.com"
 
     # Anthropic settings
@@ -42,14 +45,18 @@ class Settings(BaseSettings):
     enable_dry_run_mode: bool = True
 
     @property
-    def repo_owner(self) -> str:
+    def repo_owner(self) -> str | None:
         """Extract owner from repo string"""
-        return self.github_repo.split("/")[0]
+        if self.github_repo:
+            return self.github_repo.split("/")[0]
+        return None
 
     @property
-    def repo_name(self) -> str:
+    def repo_name(self) -> str | None:
         """Extract repo name from repo string"""
-        return self.github_repo.split("/")[1]
+        if self.github_repo:
+            return self.github_repo.split("/")[1]
+        return None
 
 
 def load_settings() -> Settings:

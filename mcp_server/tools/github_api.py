@@ -20,6 +20,7 @@ from ..models import (
     CommentType,
     PRComment,
 )
+from ..utils.git_detector import get_repo_with_fallback
 
 
 class GitHubAPIClient:
@@ -527,25 +528,35 @@ def get_github_client(
     token: str | None = None, repo: str | None = None
 ) -> GitHubAPIClient:
     """
-    Get or create GitHub API client
+    Get or create GitHub API client with intelligent repo detection
 
     Args:
         token: GitHub token (defaults to GITHUB_TOKEN env var)
-        repo: Repository (defaults to GITHUB_REPO env var)
+        repo: Repository in "owner/repo" format (auto-detected if not provided)
 
     Returns:
         GitHubAPIClient instance
+
+    Raises:
+        ValueError: If token is missing or repo cannot be determined
     """
     global _client
 
     if _client is None:
         token = token or os.getenv("GITHUB_TOKEN")
-        repo = repo or os.getenv("GITHUB_REPO")
 
         if not token:
             raise ValueError("GitHub token required (GITHUB_TOKEN env var)")
+
+        # Use intelligent repo detection with fallback
+        # Priority: 1) Provided arg, 2) Auto-detect, 3) Prompt user
+        repo = get_repo_with_fallback(repo)
+
         if not repo:
-            raise ValueError("Repository required (GITHUB_REPO env var)")
+            raise ValueError(
+                "Repository could not be determined. "
+                "Please provide it explicitly or run from within a git repository."
+            )
 
         _client = GitHubAPIClient(token=token, repo=repo)
 

@@ -4,12 +4,14 @@ MCP Server wrapper for GitHub PR Comment Agent
 
 SETUP INSTRUCTIONS:
 1. Copy this file to: ~/.claude/mcp-servers/github-pr-comments.py
-2. Update GITHUB_TOKEN and GITHUB_REPO below
+2. Update GITHUB_TOKEN below
 3. Update VENV_PATH if you installed in a different location
 4. Make executable: chmod +x ~/.claude/mcp-servers/github-pr-comments.py
 5. Restart Claude Code CLI
 
-For more details, see: MCP_SETUP.md
+GITHUB_REPO is now optional - it will auto-detect from git remote!
+
+For more details, see: docs/installation.md
 """
 import asyncio
 import os
@@ -23,10 +25,12 @@ from pathlib import Path
 VENV_PATH = Path.home() / ".venvs" / "github-pr-mcp"
 PYTHON_PATH = VENV_PATH / "bin" / "python"
 
-# TODO: Add your GitHub token and repo
+# TODO: Add your GitHub token
 # Get token from: https://github.com/settings/tokens
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "your-token-here")
-GITHUB_REPO = os.getenv("GITHUB_REPO", "owner/repo")
+
+# Optional: GITHUB_REPO will auto-detect from git remote if not set
+GITHUB_REPO = os.getenv("GITHUB_REPO", "")
 
 # Logging configuration
 LOG_LEVEL = "INFO"
@@ -46,14 +50,15 @@ def main():
         print("Required scopes: repo (full control)")
         sys.exit(1)
 
-    if GITHUB_REPO == "owner/repo":
-        print("⚠️  WARNING: GITHUB_REPO not configured")
-        print(f"   Edit: {__file__}")
-        print("   Or set GITHUB_REPO environment variable")
+    # GITHUB_REPO is now optional and auto-detected from git remote
+    if not GITHUB_REPO:
+        print("ℹ️  GITHUB_REPO not set - will auto-detect from git remote")
+        print("   (You can set it explicitly in the wrapper or via environment variable)")
 
     # Set environment variables
     os.environ["GITHUB_TOKEN"] = GITHUB_TOKEN
-    os.environ["GITHUB_REPO"] = GITHUB_REPO
+    if GITHUB_REPO:  # Only set if provided
+        os.environ["GITHUB_REPO"] = GITHUB_REPO
     os.environ["LOG_LEVEL"] = LOG_LEVEL
     os.environ["MCP_LOG_FILE"] = LOG_FILE
 

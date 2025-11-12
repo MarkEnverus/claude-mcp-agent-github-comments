@@ -91,7 +91,7 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "filters": {
                             "type": "object",
@@ -119,7 +119,7 @@ def create_github_pr_mcp_server(
                             },
                         },
                     },
-                    "required": ["pr_number", "repo"],
+                    "required": ["pr_number"],
                 },
             ),
             Tool(
@@ -142,7 +142,7 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "lines_before": {
                             "type": "integer",
@@ -155,7 +155,7 @@ def create_github_pr_mcp_server(
                             "default": 10,
                         },
                     },
-                    "required": ["comment_id", "pr_number", "repo"],
+                    "required": ["comment_id", "pr_number"],
                 },
             ),
             Tool(
@@ -178,10 +178,10 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                     },
-                    "required": ["comment_id", "pr_number", "repo"],
+                    "required": ["comment_id", "pr_number"],
                 },
             ),
             Tool(
@@ -200,14 +200,14 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "filters": {
                             "type": "object",
                             "description": "Same filters as fetch_pr_comments",
                         },
                     },
-                    "required": ["pr_number", "repo"],
+                    "required": ["pr_number"],
                 },
             ),
             Tool(
@@ -234,7 +234,7 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "commit_message": {
                             "type": "string",
@@ -245,7 +245,7 @@ def create_github_pr_mcp_server(
                             "description": "Local path to repository (optional)",
                         },
                     },
-                    "required": ["file_path", "line_number", "fix_content", "repo"],
+                    "required": ["file_path", "line_number", "fix_content"],
                 },
             ),
             Tool(
@@ -262,10 +262,10 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                     },
-                    "required": ["pr_number", "repo"],
+                    "required": ["pr_number"],
                 },
             ),
             Tool(
@@ -286,14 +286,14 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "message": {
                             "type": "string",
                             "description": "Reply message text",
                         },
                     },
-                    "required": ["comment_id", "pr_number", "repo", "message"],
+                    "required": ["comment_id", "pr_number", "message"],
                 },
             ),
             Tool(
@@ -316,14 +316,14 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "reason": {
                             "type": "string",
                             "description": "Optional reason for resolution",
                         },
                     },
-                    "required": ["comment_id", "pr_number", "repo"],
+                    "required": ["comment_id", "pr_number"],
                 },
             ),
             Tool(
@@ -344,7 +344,7 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "filters": {
                             "type": "object",
@@ -366,7 +366,7 @@ def create_github_pr_mcp_server(
                             "default": False,
                         },
                     },
-                    "required": ["pr_number", "repo"],
+                    "required": ["pr_number"],
                 },
             ),
             Tool(
@@ -402,10 +402,10 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                     },
-                    "required": ["comment_id", "pr_number", "action", "repo"],
+                    "required": ["comment_id", "pr_number", "action"],
                 },
             ),
             Tool(
@@ -425,7 +425,7 @@ def create_github_pr_mcp_server(
                         },
                         "repo": {
                             "type": "string",
-                            "description": "Repository in format 'owner/repo'",
+                            "description": "Repository in format 'owner/repo' (auto-detected from git remote if not provided)",
                         },
                         "message": {
                             "type": "string",
@@ -450,7 +450,7 @@ def create_github_pr_mcp_server(
                             "description": "Whether to resolve threads after posting (default: True)",
                         },
                     },
-                    "required": ["pr_number", "repo"],
+                    "required": ["pr_number"],
                 },
             ),
         ]
@@ -517,17 +517,13 @@ async def main():
     """Run the MCP server"""
     # Check for required environment variables
     github_token = os.getenv("GITHUB_TOKEN")
-    github_repo = os.getenv("GITHUB_REPO")
 
     if not github_token:
         logger.error("GITHUB_TOKEN environment variable is required")
         sys.exit(1)
 
-    if not github_repo:
-        logger.warning("GITHUB_REPO not set. Will need to specify in each call.")
-
     logger.info("Starting GitHub PR Comment MCP Server")
-    logger.info(f"Repository: {github_repo or 'Not set - specify per call'}")
+    logger.info("Repository will be auto-detected from git remote or specified per call")
 
     # Create server
     server = create_github_pr_mcp_server()
