@@ -520,8 +520,8 @@ class GitHubAPIClient:
         return self._graphql_query(mutation)
 
 
-# Singleton instance (can be initialized once and reused)
-_client: GitHubAPIClient | None = None
+# Cache of client instances per repository (singleton per repo)
+_clients: dict[str, GitHubAPIClient] = {}
 
 
 def get_github_client(
@@ -540,24 +540,25 @@ def get_github_client(
     Raises:
         ValueError: If token is missing or repo cannot be determined
     """
-    global _client
+    global _clients
 
-    if _client is None:
-        token = token or os.getenv("GITHUB_TOKEN")
+    token = token or os.getenv("GITHUB_TOKEN")
 
-        if not token:
-            raise ValueError("GitHub token required (GITHUB_TOKEN env var)")
+    if not token:
+        raise ValueError("GitHub token required (GITHUB_TOKEN env var)")
 
-        # Use intelligent repo detection with fallback
-        # Priority: 1) Provided arg, 2) Auto-detect, 3) Prompt user
-        repo = get_repo_with_fallback(repo)
+    # Use intelligent repo detection with fallback
+    # Priority: 1) Provided arg, 2) Auto-detect, 3) Prompt user
+    repo = get_repo_with_fallback(repo)
 
-        if not repo:
-            raise ValueError(
-                "Repository could not be determined. "
-                "Please provide it explicitly or run from within a git repository."
-            )
+    if not repo:
+        raise ValueError(
+            "Repository could not be determined. "
+            "Please provide it explicitly or run from within a git repository."
+        )
 
-        _client = GitHubAPIClient(token=token, repo=repo)
+    # Return cached client for this repo, or create new one
+    if repo not in _clients:
+        _clients[repo] = GitHubAPIClient(token=token, repo=repo)
 
-    return _client
+    return _clients[repo]
