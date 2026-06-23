@@ -179,12 +179,10 @@ class TestGetCommentStatus:
             assert status == CommentStatus.OPEN
 
     def test_get_comment_status_graphql_failure(self, client, mock_review_comment):
-        """Test fallback behavior when GraphQL fails"""
+        """Test that GraphQL failures propagate instead of silently returning OPEN"""
         with patch.object(client, "_graphql_query", side_effect=Exception("API error")):
-            status = client._get_comment_status(mock_review_comment)
-
-            # Should fall back to OPEN on error
-            assert status == CommentStatus.OPEN
+            with pytest.raises(Exception, match="API error"):
+                client._get_comment_status(mock_review_comment)
 
 
 class TestCreateCommentReply:

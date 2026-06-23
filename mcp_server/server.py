@@ -12,7 +12,7 @@ import sys
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import CallToolResult, TextContent, Tool
 
 from .tools import (
     analyze_comment_validity,
@@ -456,7 +456,7 @@ def create_github_pr_mcp_server(
         ]
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    async def call_tool(name: str, arguments: dict) -> CallToolResult:
         """Call a tool by name with arguments"""
         logger.info(f"Tool called: {name}")
         logger.debug(f"Arguments: {arguments}")
@@ -499,16 +499,14 @@ def create_github_pr_mcp_server(
             logger.info(f"Tool {name} completed successfully")
             logger.debug(f"Result length: {len(content)} chars")
 
-            return [TextContent(type="text", text=content)]
+            return CallToolResult(content=[TextContent(type="text", text=content)])
 
         except Exception as e:
             logger.error(f"Error calling tool {name}: {e}", exc_info=True)
-            return [
-                TextContent(
-                    type="text",
-                    text=f"Error: {str(e)}",
-                )
-            ]
+            return CallToolResult(
+                isError=True,
+                content=[TextContent(type="text", text=f"Error: {type(e).__name__}: {e}")],
+            )
 
     return server
 

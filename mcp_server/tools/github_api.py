@@ -152,24 +152,31 @@ class GitHubAPIClient:
 
         Returns:
             CommentStatus.OPEN or CommentStatus.RESOLVED
+
+        Raises:
+            Exception: If the GraphQL query fails (caller gets the real error)
         """
         comment_id = str(comment.id)
 
-        # Check cache first
         if comment_id in self._thread_status_cache:
             return self._thread_status_cache[comment_id]
 
-        try:
-            # Query GraphQL for thread status
-            # We need to find the thread that contains this comment
-            owner, repo_name = self.repo_name.split("/")
-            pr_number = comment.pull_request_url.split("/")[-1]
+        owner, repo_name = self.repo_name.split("/")
+        pr_number = comment.pull_request_url.split("/")[-1]
 
+        # Paginate through all review threads — PRs with many review rounds can exceed 100
+        cursor = "null"
+        while True:
+            after_arg = f'after: "{cursor}"' if cursor != "null" else ""
             query = f"""
             {{
               repository(owner: "{owner}", name: "{repo_name}") {{
                 pullRequest(number: {pr_number}) {{
-                  reviewThreads(first: 100) {{
+                  reviewThreads(first: 100{", " + after_arg if after_arg else ""}) {{
+                    pageInfo {{
+                      hasNextPage
+                      endCursor
+                    }}
                     nodes {{
                       id
                       isResolved
@@ -186,9 +193,12 @@ class GitHubAPIClient:
             """
 
             data = self._graphql_query(query)
-
-            # Find the thread containing this comment
-            threads = data.get("repository", {}).get("pullRequest", {}).get("reviewThreads", {}).get("nodes", [])
+            threads_data = (
+                data.get("repository", {})
+                .get("pullRequest", {})
+                .get("reviewThreads", {})
+            )
+            threads = threads_data.get("nodes", [])
 
             for thread in threads:
                 comment_ids = [
@@ -196,21 +206,18 @@ class GitHubAPIClient:
                     for c in thread.get("comments", {}).get("nodes", [])
                 ]
                 if comment.id in comment_ids:
-                    is_resolved = thread.get("isResolved", False)
-                    status = CommentStatus.RESOLVED if is_resolved else CommentStatus.OPEN
-
-                    # Cache the result
+                    status = CommentStatus.RESOLVED if thread.get("isResolved", False) else CommentStatus.OPEN
                     self._thread_status_cache[comment_id] = status
                     return status
 
-            # If thread not found, assume open
-            self._thread_status_cache[comment_id] = CommentStatus.OPEN
-            return CommentStatus.OPEN
+            page_info = threads_data.get("pageInfo", {})
+            if not page_info.get("hasNextPage"):
+                break
+            cursor = page_info["endCursor"]
 
-        except Exception:
-            # If GraphQL fails, fall back to OPEN
-            # Don't cache failures to allow retry
-            return CommentStatus.OPEN
+        # Thread not found — treat as open and cache so we don't re-query
+        self._thread_status_cache[comment_id] = CommentStatus.OPEN
+        return CommentStatus.OPEN
 
     def create_comment_reply(
         self, comment_id: str, pr_number: int, body: str
@@ -301,47 +308,63 @@ class GitHubAPIClient:
             Exception: If GraphQL mutation fails
         """
         try:
-            # First, find the thread ID for this comment
             owner, repo_name = self.repo_name.split("/")
+            comment_id_int = int(comment_id)
 
-            query = f"""
-            {{
-              repository(owner: "{owner}", name: "{repo_name}") {{
-                pullRequest(number: {pr_number}) {{
-                  reviewThreads(first: 100) {{
-                    nodes {{
-                      id
-                      isResolved
-                      comments(first: 100) {{
+            thread_id = None
+            already_resolved = False
+
+            cursor = "null"
+            while True:
+                after_arg = f'after: "{cursor}"' if cursor != "null" else ""
+                query = f"""
+                {{
+                  repository(owner: "{owner}", name: "{repo_name}") {{
+                    pullRequest(number: {pr_number}) {{
+                      reviewThreads(first: 100{", " + after_arg if after_arg else ""}) {{
+                        pageInfo {{
+                          hasNextPage
+                          endCursor
+                        }}
                         nodes {{
-                          databaseId
+                          id
+                          isResolved
+                          comments(first: 100) {{
+                            nodes {{
+                              databaseId
+                            }}
+                          }}
                         }}
                       }}
                     }}
                   }}
                 }}
-              }}
-            }}
-            """
+                """
 
-            data = self._graphql_query(query)
+                data = self._graphql_query(query)
+                threads_data = (
+                    data.get("repository", {})
+                    .get("pullRequest", {})
+                    .get("reviewThreads", {})
+                )
 
-            # Find the thread containing this comment
-            threads = data.get("repository", {}).get("pullRequest", {}).get("reviewThreads", {}).get("nodes", [])
+                for thread in threads_data.get("nodes", []):
+                    comment_ids = [
+                        c["databaseId"]
+                        for c in thread.get("comments", {}).get("nodes", [])
+                    ]
+                    if comment_id_int in comment_ids:
+                        thread_id = thread["id"]
+                        already_resolved = thread.get("isResolved", False)
+                        break
 
-            thread_id = None
-            already_resolved = False
-            comment_id_int = int(comment_id)
-
-            for thread in threads:
-                comment_ids = [
-                    c["databaseId"]
-                    for c in thread.get("comments", {}).get("nodes", [])
-                ]
-                if comment_id_int in comment_ids:
-                    thread_id = thread["id"]
-                    already_resolved = thread.get("isResolved", False)
+                if thread_id:
                     break
+
+                page_info = threads_data.get("pageInfo", {})
+                if not page_info.get("hasNextPage"):
+                    break
+                cursor = page_info["endCursor"]
 
             if not thread_id:
                 raise ValueError(
