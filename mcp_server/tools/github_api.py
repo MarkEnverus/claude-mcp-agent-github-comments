@@ -568,7 +568,16 @@ def get_github_client(
     token = token or os.getenv("GITHUB_TOKEN")
 
     if not token:
-        raise ValueError("GitHub token required (GITHUB_TOKEN env var)")
+        try:
+            result = subprocess.run(
+                ["gh", "auth", "token"],
+                capture_output=True, text=True, check=True,
+            )
+            token = result.stdout.strip()
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            raise ValueError(
+                "GitHub token required: set GITHUB_TOKEN env var or run 'gh auth login'"
+            )
 
     # Use intelligent repo detection with fallback
     # Priority: 1) Provided arg, 2) Auto-detect, 3) Prompt user
